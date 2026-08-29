@@ -64,6 +64,7 @@ jobs:
             git \
             kf6-kirigami-dev \
             libdbus-1-dev \
+            libsqlite3-dev \
             libxkbcommon-dev \
             pkg-config \
             qt6-base-dev \

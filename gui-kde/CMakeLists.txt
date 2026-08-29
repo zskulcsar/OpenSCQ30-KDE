@@ -10,6 +10,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml QmlTools Quick QuickControls2 QuickTest Test)
 find_package(KF6Kirigami REQUIRED)
+find_package(SQLite3 REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(DBUS REQUIRED IMPORTED_TARGET dbus-1)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -27,6 +30,7 @@ cxx_qt_import_crate(
     LOCKED
     QT_MODULES Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2
 )
+target_link_libraries(openscq30_gui_kde-static INTERFACE SQLite::SQLite3 PkgConfig::DBUS)
 
 cxx_qt_import_qml_module(openscq30_gui_kde_qml
     URI "com.oppzippy.OpenSCQ30"
@@ -49,7 +53,8 @@ if(BUILD_TESTING)
         Qt6::QuickTest)
     add_test(NAME app-controller-qml
         COMMAND openscq30-gui-qml-test -input ${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_app_controller.qml)
-    set_tests_properties(app-controller-qml PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    set_tests_properties(app-controller-qml PROPERTIES ENVIRONMENT
+        "OPENSCQ30_DATABASE_PATH=${CMAKE_CURRENT_BINARY_DIR}/test-database.sqlite;QT_QPA_PLATFORM=offscreen")
 
     get_target_property(QMLLINT_COMMAND Qt6::qmllint IMPORTED_LOCATION)
     add_test(NAME qmllint

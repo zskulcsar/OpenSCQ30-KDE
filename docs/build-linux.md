@@ -38,7 +38,7 @@ the installed name, `openscq30-gui`, and are not co-installable.
 
 ### KDE
 
-1. Install the latest version of rust, CMake, a C++ compiler, pkg-config, libdbus-1-dev, and libxkbcommon-dev.
+1. Install the latest version of rust, CMake, a C++ compiler, pkg-config, libdbus-1-dev, libsqlite3-dev, and libxkbcommon-dev.
 2. On KDE Neon, install qt6-base-dev, qt6-declarative-dev, qt6-declarative-dev-tools, and kf6-kirigami-dev.
 3. Run `just build-gui-fast kde` (or `just build-gui kde` but it's very slow to build).
 4. The compiled binary can be found at `build-output/kde/openscq30-gui`.

@@ -1,5 +1,7 @@
 use cxx_qt_lib::QString;
 
+use super::{AppServices, app_services};
+
 pub const fn frontend_id() -> &'static str {
     "kde"
 }
@@ -21,17 +23,14 @@ pub mod ffi {
 
 pub struct AppControllerRust {
     frontend: QString,
-    _runtime: tokio::runtime::Runtime,
+    _services: std::sync::Arc<AppServices>,
 }
 
 impl Default for AppControllerRust {
     fn default() -> Self {
         Self {
             frontend: QString::from(frontend_id()),
-            _runtime: tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()
-                .expect("failed to create the KDE Tokio runtime"),
+            _services: app_services(),
         }
     }
 }
@@ -41,8 +40,8 @@ mod tests {
     use super::AppControllerRust;
 
     #[test]
-    fn app_controller_starts_a_tokio_runtime() {
+    fn app_controller_uses_the_shared_tokio_runtime() {
         let controller = AppControllerRust::default();
-        assert_eq!(controller._runtime.block_on(async { 2 + 2 }), 4);
+        assert_eq!(controller._services.runtime.block_on(async { 2 + 2 }), 4);
     }
 }

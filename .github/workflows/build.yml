@@ -50,7 +50,7 @@ jobs:
           persist-credentials: false
 
       - name: Install basic requirements
-        run: sudo apt-get install -y curl gpg libdbus-1-dev libxkbcommon-dev pkg-config
+        run: sudo apt-get install -y curl gpg libdbus-1-dev libsqlite3-dev libxkbcommon-dev pkg-config
       - name: Configure KDE Neon package repository
         if: matrix.frontend == 'kde'
         run: |
