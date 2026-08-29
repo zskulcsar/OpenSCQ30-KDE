@@ -18,19 +18,34 @@ If it's inconvenient to install the latest version of [just](https://github.com/
 
 ## Building openscq30-gui on Linux
 
+Choose exactly one frontend target: `cosmic` or `kde`. Their binaries share
+the installed name, `openscq30-gui`, and are not co-installable.
+
+### COSMIC
+
 1. Install the latest version of rust
 2. Install pkg-config libdbus-1-dev libxkbcommon-dev
 
-### Without just
+#### Without just
 
 3. Run `cargo build --package openscq30-gui --profile release-fast` (or `cargo build --package openscq30-gui --release`, but it's very slow to build)
 4. The compiled binary can be found at `target/release-fast/openscq30-gui`
 
-### With just
+#### With just
 
-3. Run `just build-gui-fast` (or `just build-gui` but it's very slow to build)
-4. The compiled binary can be found at `build-output/openscq30-gui`
+3. Run `just build-gui-fast cosmic` (or `just build-gui cosmic` but it's very slow to build)
+4. The compiled binary can be found at `build-output/cosmic/openscq30-gui`
+
+### KDE
+
+1. Install the latest version of rust, CMake, a C++ compiler, pkg-config, libdbus-1-dev, and libxkbcommon-dev.
+2. On KDE Neon, install qt6-base-dev, qt6-declarative-dev, qt6-declarative-dev-tools, and kf6-kirigami-dev.
+3. Run `just build-gui-fast kde` (or `just build-gui kde` but it's very slow to build).
+4. The compiled binary can be found at `build-output/kde/openscq30-gui`.
+
+To install a selected target with the CLI, use `just install cosmic /usr/local` or `just install kde /usr/local`.
 
 ## Runtime Dependencies
 
-- [cosmic-icons](https://github.com/pop-os/cosmic-icons/): if a package isn't available, clone the git repo and run `just install`.
+- [cosmic-icons](https://github.com/pop-os/cosmic-icons/): required by the COSMIC target. If a package isn't available, clone the git repo and run `just install`.
+- KDE target: Qt 6 Quick, QML, and Kirigami runtime modules from the distribution, plus BlueZ and system D-Bus.
