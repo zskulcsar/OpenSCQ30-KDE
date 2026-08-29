@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.30.5)
 
 project(openscq30_gui_kde LANGUAGES CXX)
 

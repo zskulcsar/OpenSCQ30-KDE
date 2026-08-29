@@ -76,6 +76,13 @@ jobs:
           "$HOME/.cargo/bin/rustup" default 1.97.1
           "$HOME/.cargo/bin/cargo" install just --version 1.58.0 --locked
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Record KDE toolchain
+        run: |
+          rustc --version
+          cmake --version
+          qmake6 -query QT_VERSION
+          dpkg-query -W -f='${Package} ${Version}\n' kf6-kirigami-dev
+          cargo tree -p openscq30_gui_kde -i cxx-qt --depth 1
       - name: Run Rust bridge tests
         run: cargo test -p openscq30_gui_kde --lib
       - name: Run QML tests and lint

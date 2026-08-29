@@ -63,7 +63,17 @@ jobs:
       - name: Install just
         run: sudo snap install just --classic
       - name: Install rust
-        run: rustup install --profile minimal stable
+        run: |
+          rustup install --profile minimal 1.97.1
+          rustup default 1.97.1
+      - name: Record KDE toolchain
+        if: matrix.frontend == 'kde'
+        run: |
+          rustc --version
+          cmake --version
+          qmake6 -query QT_VERSION
+          dpkg-query -W -f='${Package} ${Version}\n' kf6-kirigami-dev
+          cargo tree -p openscq30_gui_kde -i cxx-qt --depth 1
 
       - name: Build cli
         run: just build-cli bundled-dependencies

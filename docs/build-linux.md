@@ -43,6 +43,8 @@ the installed name, `openscq30-gui`, and are not co-installable.
 3. Run `just build-gui-fast kde` (or `just build-gui kde` but it's very slow to build).
 4. The compiled binary can be found at `build-output/kde/openscq30-gui`.
 
+The tested KDE Neon toolchain is Rust 1.97.1, CMake 3.30.5, Qt 6.11.1, KF6 Kirigami 6.29.0, and CXX-Qt 0.10.0.
+
 To install a selected target with the CLI, use `just install cosmic /usr/local` or `just install kde /usr/local`.
 
 ## Runtime Dependencies
