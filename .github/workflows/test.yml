@@ -45,18 +45,17 @@ jobs:
           path: target/llvm-cov/html/
 
   test-kde:
-    runs-on: ubuntu-latest
-    container:
-      image: kdeneon/plasma
-      options: --user root
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Install KDE build requirements
         run: |
+          curl --fail --location https://archive.neon.kde.org/public.key | sudo gpg --dearmor --yes --output /usr/share/keyrings/kde-neon-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/kde-neon-archive-keyring.gpg] https://archive.neon.kde.org/user noble main" | sudo tee /etc/apt/sources.list.d/kde-neon.list > /dev/null
           apt-get update
-          apt-get install -y \
+          sudo apt-get install -y \
             appstream \
             build-essential \
             ca-certificates \
