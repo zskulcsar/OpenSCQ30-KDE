@@ -23,19 +23,43 @@ permissions:
   contents: read
 
 jobs:
-  build-linux-x86_64:
-    runs-on: ubuntu-latest
+  build-linux:
+    runs-on: ${{ matrix.runner }}
     if: inputs.linux
     permissions:
       id-token: write
       attestations: write
+    strategy:
+      matrix:
+        include:
+          - frontend: cosmic
+            architecture: x86_64
+            runner: ubuntu-24.04
+          - frontend: kde
+            architecture: x86_64
+            runner: ubuntu-24.04
+          - frontend: cosmic
+            architecture: arm64
+            runner: ubuntu-24.04-arm
+          - frontend: kde
+            architecture: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Install basic requirements
-        run: sudo apt-get install -y pkg-config libdbus-1-dev libxkbcommon-dev
+        run: sudo apt-get install -y curl gpg libdbus-1-dev libxkbcommon-dev pkg-config
+      - name: Configure KDE Neon package repository
+        if: matrix.frontend == 'kde'
+        run: |
+          curl --fail --location https://archive.neon.kde.org/public.key | sudo gpg --dearmor --yes --output /usr/share/keyrings/kde-neon-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/kde-neon-archive-keyring.gpg] https://archive.neon.kde.org/user noble main" | sudo tee /etc/apt/sources.list.d/kde-neon.list > /dev/null
+          sudo apt-get update
+      - name: Install KDE build requirements
+        if: matrix.frontend == 'kde'
+        run: sudo apt-get install -y build-essential cmake git kf6-kirigami-dev qt6-base-dev qt6-declarative-dev qt6-declarative-dev-tools
       - name: Install just
         run: sudo snap install just --classic
       - name: Install rust
@@ -43,13 +67,18 @@ jobs:
 
       - name: Build cli
         run: just build-cli bundled-dependencies
-      - name: Build gui
-        run: just build-gui bundled-dependencies
+      - name: Build COSMIC frontend
+        if: matrix.frontend == 'cosmic'
+        run: just build-gui cosmic bundled-dependencies
+      - name: Build KDE frontend
+        if: matrix.frontend == 'kde'
+        run: just build-gui kde
 
-      - name: Add platform to file name
+      - name: Name target-specific artifacts
         run: |
-          mv build-output/openscq30 build-output/openscq30-cli-linux-x86_64
-          mv build-output/openscq30-gui build-output/openscq30-gui-linux-x86_64
+          mv build-output/openscq30 "build-output/openscq30-cli-${{ matrix.frontend }}-linux-${{ matrix.architecture }}"
+          mv "build-output/${{ matrix.frontend }}/openscq30-gui" "build-output/openscq30-gui-${{ matrix.frontend }}-linux-${{ matrix.architecture }}"
+          rmdir "build-output/${{ matrix.frontend }}"
 
       - name: Attest artifacts
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -59,46 +88,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: linux-x86_64
-          path: build-output/*
-
-  build-linux-arm64:
-    runs-on: ubuntu-24.04-arm
-    if: inputs.linux
-    permissions:
-      id-token: write
-      attestations: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Install basic requirements
-        run: sudo apt-get install -y pkg-config libdbus-1-dev libxkbcommon-dev
-      - name: Install just
-        run: sudo snap install just --classic
-      - name: Install rust
-        run: rustup install --profile minimal stable
-
-      - name: Build cli
-        run: just build-cli bundled-dependencies
-      - name: Build gui
-        run: just build-gui bundled-dependencies
-
-      - name: Add platform to file name
-        run: |
-          mv build-output/openscq30 build-output/openscq30-cli-linux-arm64
-          mv build-output/openscq30-gui build-output/openscq30-gui-linux-arm64
-
-      - name: Attest artifacts
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-path: build-output/*
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: linux-arm64
+          name: linux-${{ matrix.frontend }}-${{ matrix.architecture }}
           path: build-output/*
 
   build-windows:
@@ -120,15 +110,15 @@ jobs:
       - name: Build cli
         run: just build-cli
       - name: Build gui
-        run: just build-gui
+        run: just build-gui cosmic
       - name: Build installer
         run: just build-gui-installer
 
       - name: Add platform to file name
         run: |
           mv build-output/openscq30.exe build-output/openscq30-cli-windows-x86_64.exe
-          mv build-output/openscq30-gui.exe build-output/openscq30-gui-windows-x86_64.exe
-          mv build-output/openscq30-gui-installer.exe build-output/openscq30-gui-installer-windows-x86_64.exe
+          mv build-output/cosmic/openscq30-gui.exe build-output/openscq30-gui-cosmic-windows-x86_64.exe
+          mv build-output/openscq30-gui-installer.exe build-output/openscq30-gui-installer-cosmic-windows-x86_64.exe
 
       - name: Attest artifacts
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
