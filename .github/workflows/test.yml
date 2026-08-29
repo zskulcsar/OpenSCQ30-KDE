@@ -43,3 +43,52 @@ jobs:
         with:
           name: coverage
           path: target/llvm-cov/html/
+
+  test-kde:
+    runs-on: ubuntu-latest
+    container: kdeneon/plasma
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install KDE build requirements
+        run: |
+          apt-get update
+          apt-get install -y \
+            appstream \
+            build-essential \
+            ca-certificates \
+            cmake \
+            curl \
+            git \
+            kf6-kirigami-dev \
+            libdbus-1-dev \
+            libxkbcommon-dev \
+            pkg-config \
+            qt6-base-dev \
+            qt6-declarative-dev \
+            qt6-declarative-dev-tools
+      - name: Install pinned Rust and Just
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          "$HOME/.cargo/bin/rustup" toolchain install 1.97.1 --profile minimal
+          "$HOME/.cargo/bin/rustup" default 1.97.1
+          "$HOME/.cargo/bin/cargo" install just --version 1.58.0 --locked
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Run Rust bridge tests
+        run: cargo test -p openscq30_gui_kde --lib
+      - name: Run QML tests and lint
+        run: just kde::test
+      - name: Build KDE frontend
+        run: just build-gui-fast kde
+      - name: Validate AppStream metadata
+        run: appstreamcli validate gui/resources/com.oppzippy.OpenSCQ30.metainfo.xml
+      - name: Smoke-test installed KDE frontend
+        run: |
+          install_root="$RUNNER_TEMP/openscq30-kde-install"
+          cmake --install gui-kde/build --prefix "$install_root"
+          if QT_QPA_PLATFORM=offscreen timeout 10 "$install_root/bin/openscq30-gui"; then
+            exit 1
+          else
+            test "$?" -eq 124
+          fi

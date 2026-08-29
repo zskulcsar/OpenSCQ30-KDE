@@ -22,7 +22,7 @@ use tokio::{select, sync::Semaphore};
 
 use crate::{
     add_device::{self, AddDeviceModel},
-    config::Config,
+    config::{Config, WindowDecoration},
     device_selection::{self, DeviceSelectionModel},
     device_settings, fl,
     utils::coalesce_result,
@@ -35,6 +35,7 @@ pub struct AppModel {
     session: Arc<OpenSCQ30Session>,
     warnings: VecDeque<String>,
     config: Config,
+    window_decoration: WindowDecoration,
     config_dir: PathBuf,
     about: widget::about::About,
     context_drawer_screen: Option<ContextDrawerScreen>,
@@ -52,6 +53,7 @@ enum KeyBindAction {
 pub struct AppFlags {
     pub config: Config,
     pub config_dir: PathBuf,
+    pub window_decoration: WindowDecoration,
 }
 
 enum ContextDrawerScreen {
@@ -159,7 +161,11 @@ impl Application for AppModel {
         &mut self.core
     }
 
-    fn init(core: Core, flags: Self::Flags) -> (Self, cosmic::app::Task<Self::Message>) {
+    fn init(mut core: Core, flags: Self::Flags) -> (Self, cosmic::app::Task<Self::Message>) {
+        if flags.window_decoration == WindowDecoration::Server {
+            core.window.show_headerbar = false;
+        }
+
         let about = widget::about::About::default()
             .name(fl!("openscq30"))
             .icon(crate::icons::openscq30())
@@ -189,6 +195,7 @@ impl Application for AppModel {
             session,
             warnings: VecDeque::with_capacity(5),
             config: flags.config,
+            window_decoration: flags.window_decoration,
             config_dir: flags.config_dir,
             about,
             context_drawer_screen: None,
@@ -264,7 +271,8 @@ impl Application for AppModel {
     }
 
     fn view(&self) -> cosmic::Element<'_, Self::Message> {
-        widget::Column::with_capacity(2)
+        widget::Column::with_capacity(3)
+            .push_maybe(self.server_toolbar())
             .push_maybe(
                 self.warnings.front().map(|message| {
                     crate::warning::warning(message).on_close(Message::CloseWarning)
@@ -600,6 +608,34 @@ impl Application for AppModel {
 }
 
 impl AppModel {
+    fn server_toolbar(&self) -> Option<cosmic::Element<'_, Message>> {
+        if self.window_decoration != WindowDecoration::Server {
+            return None;
+        }
+
+        Some(
+            widget::Row::with_capacity(4)
+                .push_maybe(
+                    (!matches!(self.screen, Screen::DeviceSelection(_))).then(|| {
+                        widget::button::icon(widget::icon::from_name("go-previous-symbolic"))
+                            .on_press(Message::BackToDeviceSelection)
+                    }),
+                )
+                .push(cosmic::iced::widget::space::horizontal())
+                .push(
+                    widget::button::icon(widget::icon::from_name("preferences-system-symbolic"))
+                        .on_press(Message::ToggleSettings),
+                )
+                .push(
+                    widget::button::icon(widget::icon::from_name("help-about-symbolic"))
+                        .on_press(Message::ToggleAbout),
+                )
+                .align_y(alignment::Vertical::Center)
+                .padding([0, 10])
+                .into(),
+        )
+    }
+
     pub fn update_title(&mut self) -> cosmic::app::Task<Message> {
         if let Some(id) = self.core.main_window_id() {
             self.set_header_title(fl!("openscq30"));

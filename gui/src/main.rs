@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use clap::Parser;
 use i18n_embed::unic_langid::LanguageIdentifier;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
@@ -17,7 +18,37 @@ mod throttle;
 mod utils;
 mod warning;
 
+#[derive(Parser)]
+struct Arguments {
+    /// Use native server-side window decorations for this launch.
+    #[arg(long)]
+    server: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn server_flag_overrides_configured_client_decorations() {
+        assert_eq!(
+            window_decoration(true, config::WindowDecoration::Client),
+            config::WindowDecoration::Server
+        );
+    }
+
+    #[test]
+    fn missing_server_flag_uses_configured_decorations() {
+        assert_eq!(
+            window_decoration(false, config::WindowDecoration::Server),
+            config::WindowDecoration::Server
+        );
+    }
+}
+
 fn main() -> anyhow::Result<()> {
+    let arguments = Arguments::parse();
+
     tracing_subscriber::fmt()
         .with_file(true)
         .with_line_number(true)
@@ -62,10 +93,32 @@ fn main() -> anyhow::Result<()> {
     i18n::init(&requested_languages);
     openscq30_lib::i18n::init(&requested_languages);
 
-    let settings = cosmic::app::Settings::default();
-    cosmic::app::run::<app::AppModel>(settings, app::AppFlags { config, config_dir })?;
+    let window_decoration = window_decoration(arguments.server, config.get().window_decoration);
+    let settings = cosmic::app::Settings::default().client_decorations(matches!(
+        window_decoration,
+        config::WindowDecoration::Client
+    ));
+    cosmic::app::run::<app::AppModel>(
+        settings,
+        app::AppFlags {
+            config,
+            config_dir,
+            window_decoration,
+        },
+    )?;
 
     Ok(())
+}
+
+fn window_decoration(
+    server: bool,
+    configured: config::WindowDecoration,
+) -> config::WindowDecoration {
+    if server {
+        config::WindowDecoration::Server
+    } else {
+        configured
+    }
 }
 
 #[cfg(windows)]

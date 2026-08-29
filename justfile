@@ -1,6 +1,7 @@
 mod android
 mod cli
 mod gui
+mod kde "./gui-kde/justfile"
 mod i18n
 mod i18n-macros
 mod lib
@@ -14,17 +15,47 @@ build-output-dir := "build-output"
 list:
     @just --list
 
-[doc("Run a fully optimized release build")]
+[doc("Run a fully optimized release build for one desktop frontend")]
 [group("build")]
-build-gui features='': create-build-output-dir
-    just gui::build release '{{ features }}'
-    cp target/release/openscq30-gui '{{ build-output-dir }}/'
+[arg("frontend", pattern="cosmic|kde")]
+[script("bash")]
+build-gui frontend features='':
+    set -euo pipefail
 
-[doc("Run a release build with excessively slow optimizations disabled")]
+    case '{{ frontend }}' in
+        cosmic)
+            just gui::build release '{{ features }}'
+            binary=target/release/openscq30-gui
+            ;;
+        kde)
+            just kde::build release
+            binary=gui-kde/build/openscq30-gui
+            ;;
+    esac
+
+    mkdir -p '{{ build-output-dir }}/{{ frontend }}'
+    cp "$binary" '{{ build-output-dir }}/{{ frontend }}/openscq30-gui'
+
+[doc("Run a faster release build for one desktop frontend")]
 [group("build")]
-build-gui-fast features='': create-build-output-dir
-    just gui::build release-fast '{{ features }}'
-    cp target/release-fast/openscq30-gui '{{ build-output-dir }}/'
+[arg("frontend", pattern="cosmic|kde")]
+[script("bash")]
+build-gui-fast frontend features='':
+    set -euo pipefail
+
+    case '{{ frontend }}' in
+        cosmic)
+            just gui::build release-fast '{{ features }}'
+            binary=target/release-fast/openscq30-gui
+            ;;
+        kde)
+            just kde::build release-fast
+            binary=gui-kde/build/openscq30-gui
+            ;;
+    esac
+
+    mkdir -p '{{ build-output-dir }}/{{ frontend }}'
+    cp "$binary" '{{ build-output-dir }}/{{ frontend }}/openscq30-gui'
 
 [doc("Build the windows installer. The gui must be built first.")]
 [group("build")]
@@ -136,16 +167,30 @@ test-cov-report format='lcov':
 
     cargo llvm-cov report $format_args
 
-[doc("Install openscq30-gui and openscq30-cli to the specified path such as '/usr/local' or '.local'. Requires building both first using either build or build-fast. This will also install opnescq30-cli shell completions for all shells installed on the system. This can be disabled by setting OPENSCQ30_SKIP_SHELL_COMPLETIONS=1.")]
+[doc("Install openscq30-cli and one selected desktop frontend to the specified path. Requires building both first.")]
 [linux]
-install path:
-    just gui::install '{{ path }}'
+[arg("frontend", pattern="cosmic|kde")]
+[script("bash")]
+install frontend path:
+    set -euo pipefail
+
+    case '{{ frontend }}' in
+        cosmic) just gui::install '{{ path }}' ;;
+        kde) just kde::install '{{ path }}' ;;
+    esac
     just cli::install '{{ path }}'
 
-[doc("Uninstall openscq30-gui and openscq30-cli from the specified path.")]
+[doc("Uninstall openscq30-cli and one selected desktop frontend from the specified path.")]
 [linux]
-uninstall path:
-    just gui::uninstall '{{ path }}'
+[arg("frontend", pattern="cosmic|kde")]
+[script("bash")]
+uninstall frontend path:
+    set -euo pipefail
+
+    case '{{ frontend }}' in
+        cosmic) just gui::uninstall '{{ path }}' ;;
+        kde) just kde::uninstall '{{ path }}' ;;
+    esac
     just cli::uninstall '{{ path }}'
 
 alias fmt := format

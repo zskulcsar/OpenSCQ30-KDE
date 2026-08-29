@@ -19,6 +19,15 @@ pub struct Config {
 #[serde(default)]
 pub struct ConfigInner {
     pub preferred_language: Option<String>,
+    pub window_decoration: WindowDecoration,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum WindowDecoration {
+    #[default]
+    Client,
+    Server,
 }
 
 impl Config {
@@ -75,5 +84,24 @@ impl Config {
             _ = sender.send(result.context("writing to config file"));
         });
         receiver
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_window_decoration_defaults_to_client() {
+        let config: ConfigInner = toml::from_str("").unwrap();
+
+        assert_eq!(config.window_decoration, WindowDecoration::Client);
+    }
+
+    #[test]
+    fn server_window_decoration_is_deserialized() {
+        let config: ConfigInner = toml::from_str("window_decoration = \"server\"").unwrap();
+
+        assert_eq!(config.window_decoration, WindowDecoration::Server);
     }
 }
